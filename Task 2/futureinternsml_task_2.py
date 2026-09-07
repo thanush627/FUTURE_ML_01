@@ -7,11 +7,15 @@ Original file is located at
     https://colab.research.google.com/drive/1jrciym2Bc1TOxBmZAh0qpEhkRBjPOIZ0
 """
 
-pip install pandas numpy scikit-learn xgboost matplotlib seaborn openpyxl
+# Colab magic, not valid Python - a bare `pip install` line makes this file a
+# SyntaxError when run outside a notebook. Install the dependencies first:
+#   pip install pandas numpy scikit-learn xgboost matplotlib seaborn openpyxl
+
+from pathlib import Path
 
 import pandas as pd
 
-df = pd.read_csv("/content/TelcoCustomerChurn.csv")
+df = pd.read_csv(Path(__file__).with_name("TelcoCustomerChurn.csv"))
 
 print(df.shape)
 df.head()
@@ -20,7 +24,7 @@ df.drop('customerID', axis=1, inplace=True)
 
 df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
 
-df['TotalCharges'].fillna(df['TotalCharges'].median(), inplace=True)
+df['TotalCharges'] = df['TotalCharges'].fillna(df['TotalCharges'].median())
 
 df['Churn'] = df['Churn'].map({'Yes': 1, 'No': 0})
 
@@ -42,8 +46,8 @@ from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier
 
 log_reg = LogisticRegression(max_iter=1000)
-rf = RandomForestClassifier()
-xgb = XGBClassifier(use_label_encoder=False, eval_metric='logloss')
+rf = RandomForestClassifier(random_state=42)
+xgb = XGBClassifier(eval_metric='logloss', random_state=42)
 
 # Train
 log_reg.fit(X_train, y_train)
@@ -55,7 +59,7 @@ from sklearn.metrics import classification_report, confusion_matrix, roc_auc_sco
 def evaluate_model(model, name):
     y_pred = model.predict(X_test)
     y_proba = model.predict_proba(X_test)[:,1]
-    print(f"📊 Model: {name}")
+    print(f"Model: {name}")
     print(confusion_matrix(y_test, y_pred))
     print(classification_report(y_test, y_pred))
     print(f"ROC AUC: {roc_auc_score(y_test, y_proba)}\n")
@@ -79,9 +83,14 @@ predictions['Predicted'] = xgb.predict(X_test)
 predictions.head()
 
 X_test_copy = X_test.copy()
-X_test_copy['Churn_Probability'] = predictions['Churn_Probability']
+# .values, not the Series: `predictions` was built with a fresh 0..n-1 index
+# while X_test keeps the shuffled index from train_test_split. Assigning the
+# Series makes pandas align on index, so only the few rows whose original
+# index happened to fall in 0..n-1 got a value and the rest became NaN -
+# 1116 of 1409 rows in the previously exported workbook.
+X_test_copy['Churn_Probability'] = predictions['Churn_Probability'].values
 X_test_copy['Actual'] = y_test.values
-X_test_copy['Predicted'] = predictions['Predicted']
+X_test_copy['Predicted'] = predictions['Predicted'].values
 
 X_test_copy.to_excel("Churn_Prediction_Output.xlsx", index=False)
 

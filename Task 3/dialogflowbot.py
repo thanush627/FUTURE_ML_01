@@ -28,8 +28,8 @@ def detect_intent_texts(text, session_id="user-session", language_code="en"):
     session_client = dialogflow.SessionsClient()
     session = session_client.session_path(PROJECT_ID, session_id)
 
-    text_input = dialogflow.types.TextInput(text=text, language_code=language_code)
-    query_input = dialogflow.types.QueryInput(text=text_input)
+    text_input = dialogflow.TextInput(text=text, language_code=language_code)
+    query_input = dialogflow.QueryInput(text=text_input)
 
     response = session_client.detect_intent(
         request={"session": session, "query_input": query_input}

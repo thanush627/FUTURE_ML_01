@@ -40,21 +40,39 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(reply)
 
 # Entry point
-async def main():
-    app = ApplicationBuilder().token("7784016914:AAFQGZm8YbgTrYL2Hd_rG3XDcdu4TIm4Bh0").build()
+def main():
+    # Read from the environment - never hardcode the token. A token committed
+    # to a repository is a published credential: anyone who reads it can
+    # receive this bot's messages and reply as it. Set it before running:
+    #   Windows : set TELEGRAM_BOT_TOKEN=your-token
+    #   Linux   : export TELEGRAM_BOT_TOKEN=your-token
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    if not token:
+        raise SystemExit(
+            "TELEGRAM_BOT_TOKEN is not set. Get a token from @BotFather and "
+            "export it before running this script."
+        )
+
+    app = ApplicationBuilder().token(token).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     print("Bot is running...")
+    # Without this the script builds the application, registers the handlers,
+    # prints "Bot is running..." and exits immediately - the bot never polls
+    # Telegram and never answers a single message.
+    app.run_polling()
 
 
-# Run based on environment
 if __name__ == "__main__":
     try:
-        # CMD / Python script
-        asyncio.run(main())
+        main()
     except RuntimeError:
-        # Colab / Jupyter Notebook
+        # Notebook environments (Colab, Jupyter) already run an event loop,
+        # which run_polling() cannot start inside. nest_asyncio allows the
+        # nested loop - then actually retry, rather than patching and exiting.
         import nest_asyncio
+
         nest_asyncio.apply()
+        main()
