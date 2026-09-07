@@ -46,7 +46,11 @@ The classes are imbalanced roughly 3:1, which is why **accuracy alone is mislead
 
 **The simplest model wins.** Logistic Regression outperforms both ensembles on accuracy and AUC. That isn't a fluke to explain away — churn here is driven by a handful of strong, largely linear signals (contract type, tenure, monthly charges), and on 7,043 rows the extra flexibility of a tree ensemble mostly fits noise. It's a useful reminder that reaching for the most powerful model is not the same as reaching for the best one.
 
-The exported predictions come from XGBoost, which is worth revisiting given the numbers above.
+**Logistic Regression is therefore the model that gets exported**, and the one the Power BI dashboard reads.
+
+It's fitted inside a pipeline with `StandardScaler`. The features are on wildly different scales — `tenure` runs 0–72, `MonthlyCharges` past 120, and the one-hot columns are 0/1 — and on raw values the lbfgs solver hits its iteration cap without converging. Scaling fixes that; the pipeline applies it automatically, so the model is still called with raw features.
+
+The feature-importance chart is read from XGBoost even though Logistic Regression is exported. Tree importances are scale-invariant, whereas ranking logistic coefficients on these features would largely rank their units.
 
 ## Files
 

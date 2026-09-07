@@ -55,7 +55,7 @@ Three models are trained and compared:
 | Random Forest | 0.79 | 0.837 |
 | XGBoost | 0.79 | 0.838 |
 
-A useful result worth stating plainly: **the simplest model wins.** Logistic Regression beats both tree ensembles on this dataset — churn here is driven by largely linear, well-separated signals such as contract type and tenure, and the extra capacity of the ensembles buys nothing but variance.
+A useful result worth stating plainly: **the simplest model wins.** Logistic Regression beats both tree ensembles on this dataset — churn here is driven by largely linear, well-separated signals such as contract type and tenure, and the extra capacity of the ensembles buys nothing but variance. It is the model that ships.
 
 **Output** — every test customer scored with a churn probability, exported to Excel and turned into a Power BI dashboard.
 

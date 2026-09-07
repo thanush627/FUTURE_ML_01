@@ -43,9 +43,15 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 from xgboost import XGBClassifier
 
-log_reg = LogisticRegression(max_iter=1000)
+# Scaled inside a pipeline: tenure runs 0-72 while MonthlyCharges runs to ~120
+# and the one-hot columns are 0/1, so on raw features lbfgs hit max_iter
+# without converging. The pipeline applies the scaler on every fit/predict,
+# so the model is still called with raw X everywhere below.
+log_reg = make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000))
 rf = RandomForestClassifier(random_state=42)
 xgb = XGBClassifier(eval_metric='logloss', random_state=42)
 
@@ -71,15 +77,22 @@ evaluate_model(xgb, "XGBoost")
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+# Importances are read from XGBoost even though Logistic Regression is the
+# exported model: tree importances are scale-invariant, whereas ranking
+# logistic coefficients would mostly rank the features' units.
 feature_importance = pd.Series(xgb.feature_importances_, index=X.columns)
 feature_importance.nlargest(10).plot(kind='barh')
 plt.title('Top 10 Important Features')
 plt.show()
 
+# Logistic Regression is exported, not XGBoost: it scored higher on both
+# accuracy and ROC AUC on this dataset (see README). Churn here is driven by a
+# few strong, largely linear signals, so the ensembles' extra capacity fits
+# noise rather than signal.
 predictions = pd.DataFrame()
-predictions['Churn_Probability'] = xgb.predict_proba(X_test)[:,1]
+predictions['Churn_Probability'] = log_reg.predict_proba(X_test)[:,1]
 predictions['Actual'] = y_test.values
-predictions['Predicted'] = xgb.predict(X_test)
+predictions['Predicted'] = log_reg.predict(X_test)
 predictions.head()
 
 X_test_copy = X_test.copy()
